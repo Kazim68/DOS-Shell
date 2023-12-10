@@ -134,9 +134,11 @@ public:
     // input function
     bool input(){
 
+        cout << current->path << ">";
         string input = getInput();
 
         if (input == "exit"){
+            system("cls");
             return false;
         } 
         else if (input == "dir"){
@@ -145,14 +147,26 @@ public:
         else if (input == "cd.."){
             cd("..");
         } 
+        else if (input == "cd/"){
+            current = root;
+        }
+        else if (input == "cd."){
+            current->printPath();
+        }
+        else if (input == "help"){
+            help();
+        }
+        else if (input == "cls"){
+            system("cls");
+        }
         else if (input.substr(0, 3) == "cd "){
             cd(input.substr(3, input.length() - 1));
         }
         else if (input.substr(0, 5) == "mkdir"){
             mkdir(input.substr(6, input.length() - 1));
         }
-        else if (input.substr(0, 6) == "mkfile "){
-            string fileName = input.substr(6, input.length() - 1);
+        else if (input.substr(0, 6) == "mkfile"){
+            string fileName = input.substr(7, input.length() - 1);
             cout << "Enter file data: ";
             string fileData = getInput();
             current->addFile(fileName, fileData);
@@ -185,7 +199,6 @@ public:
     // get input
     string getInput(){
         string input;
-        cout << current->path << ">";
         getline(cin, input);
         return input;
     }
@@ -193,6 +206,18 @@ public:
     // run function
     void run(){
         while (input());
+    }
+
+    // help function
+    void help(){
+        cout << "dir - list directory" << endl;
+        cout << "cd.. - go to parent directory" << endl;
+        cout << "cd <directory name> - go to directory" << endl;
+        cout << "mkdir <directory name> - create directory" << endl;
+        cout << "mkfile <file name> - create file" << endl;
+        cout << "rmdir <directory name> - remove directory" << endl;
+        cout << "rmfile <file name> - remove file" << endl;
+        cout << "exit - exit program" << endl;
     }
 };
 
