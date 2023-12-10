@@ -14,6 +14,10 @@ public:
         name = _name;
         data = _data;
     }
+
+    void print(){
+        cout << data << endl;
+    }
 };
 
 
@@ -67,6 +71,16 @@ public:
         }
         return false;
     }
+
+    // checking if file already exists
+    bool checkFile(string _name){
+        for (auto it = files->begin(); it != files->end(); it++){
+            if (it->name == _name){
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 
@@ -105,6 +119,7 @@ public:
                     break;
                 }
             }
+            cout << "Directory not found" << endl;
         }
     }
 
@@ -128,6 +143,40 @@ public:
         } 
         else {
             cout << "Directory already exists" << endl;
+        }
+    }
+
+    // rmdir function
+    void rmdir(string _name){
+        for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
+            if (it->name == _name){
+                current->directories->erase(it);
+                break;
+            }
+        }
+    }
+
+    // mkfile function
+    void mkfile(string _name){
+
+        // checking for duplicate file names
+        if (!current->checkFile(_name)){
+            cout << "Enter file data: ";
+            string fileData = getInput();
+            current->addFile(_name, fileData);
+        } 
+        else {
+            cout << "File already exists" << endl;
+        }
+    }
+
+    // rmfile function
+    void rmfile(string _name){
+        for (auto it = current->files->begin(); it != current->files->end(); ++it){
+            if (it->name == _name){
+                current->files->erase(it);
+                break;
+            }
         }
     }
 
@@ -166,28 +215,13 @@ public:
             mkdir(input.substr(6, input.length() - 1));
         }
         else if (input.substr(0, 6) == "mkfile"){
-            string fileName = input.substr(7, input.length() - 1);
-            cout << "Enter file data: ";
-            string fileData = getInput();
-            current->addFile(fileName, fileData);
+            mkfile(input.substr(7, input.length() - 1));
         } 
         else if (input.substr(0, 5) == "rmdir"){
-            string dirName = input.substr(6, input.length() - 1);
-            for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
-                if (it->name == dirName){
-                    current->directories->erase(it);
-                    break;
-                }
-            }
+            rmdir(input.substr(6, input.length() - 1));
         } 
         else if (input.substr(0, 5) == "rmfil"){
-            string fileName = input.substr(6, input.length() - 1);
-            for (auto it = current->files->begin(); it != current->files->end(); ++it){
-                if (it->name == fileName){
-                    current->files->erase(it);
-                    break;
-                }
-            }
+            rmfile(input.substr(6, input.length() - 1));
         } 
         else {
             cout << "Invalid command" << endl;
