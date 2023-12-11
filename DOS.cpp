@@ -125,13 +125,18 @@ public:
 
     // dir function
     void dir(){
-        for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
+       if(current->directories->size()==0){
+            cout<<"no files"<<endl;
+       }
+       else{
+         for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
             cout << "           DIR         " << it->name << endl;
         }
         cout << endl << endl;
         for (auto it = current->files->begin(); it != current->files->end(); ++it){
             cout << "           File(s)         " << it->name << endl;
         }
+       }
     }
 
     // mkdir function
@@ -145,6 +150,8 @@ public:
             cout << "Directory already exists" << endl;
         }
     }
+
+
 
     // rmdir function
     void rmdir(string _name){
@@ -208,7 +215,7 @@ public:
         else if (input == "cls"){
             system("cls");
         }
-        else if (input.substr(0, 3) == "cd "){
+        else if (input.substr(0, 3) == "cd"){
             cd(input.substr(3, input.length() - 1));
         }
         else if (input.substr(0, 5) == "mkdir"){
