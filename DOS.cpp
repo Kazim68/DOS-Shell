@@ -61,9 +61,6 @@ public:
                 }
             }
         }
-        else{
-            return nullptr;
-        }
         return nullptr;
     }
     void printPath()
@@ -282,23 +279,13 @@ public:
 
     void attrib(string att)
     {
-        bool isExist = current->checkFile(att);
-        if (isExist)
-        {
-            for (auto it = current->files->begin(); it != current->files->end(); ++it)
-            {
-                if (it->name == att)
-                {
-                    cout << "file name is " << it->name << endl;
-                    cout << "file data is " << it->data << endl;
-                    return;
-                }
+            Files* file = current->find(att);
+            if (file == nullptr){
+                cout << "file not found" << endl;
+                return;
             }
-        }
-        else
-        {
-            cout << "file not found" << endl;
-        }
+            cout << "file name is " << file->name << endl;
+            cout << "file data is " << file->data << endl;
     }
     void find(string filename)
     {
@@ -315,7 +302,20 @@ public:
 
     // findf function
     void findf(string name, string text){
-
+        Files* file = current->find(name);
+        if (file == nullptr){
+            cout << "file not found" << endl;
+            return;
+        }
+        string fileData = file->data;
+        if (fileData.find(text) != string::npos){
+            cout<<"text found"<<endl;
+            cout << "file name is " << file->name << endl;
+            cout << "file data is " << file->data << endl;
+        }
+        else{
+            cout << "text not found" << endl;
+        }
     }
 
     // findstr function
