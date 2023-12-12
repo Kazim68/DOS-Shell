@@ -190,10 +190,12 @@ public:
     }
 
     // rmdir function
-    void rmdir(string _name)
-    {
-        for (auto it = current->directories->begin(); it != current->directories->end(); ++it)
-        {
+    void rmdir(string _name){
+        if (!current->checkDirectory(_name)){
+            cout << "Directory not found" << endl;
+            return;
+        }
+        for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
             if (it->name == _name)
             {
                 current->directories->erase(it);
@@ -222,10 +224,12 @@ public:
     // rmfile function
     void rmfile(string _name)
     {
-        for (auto it = current->files->begin(); it != current->files->end(); ++it)
-        {
-            if (it->name == _name)
-            {
+        if (!current->checkFile(_name)){
+            cout << "File not found" << endl;
+            return;
+        }
+        for (auto it = current->files->begin(); it != current->files->end(); ++it){
+            if (it->name == _name){
                 current->files->erase(it);
                 break;
             }
@@ -238,24 +242,18 @@ public:
         cout << "current name is " << currentnName << endl;
         string newName = oldname.substr(oldname.find(" ") + 1, oldname.length() - 1);
         cout << "new name is " << newName << endl;
-        if (current->checkFile(currentnName))
-        {
-            for (auto it = current->files->begin(); it != current->files->end(); ++it)
-            {
-                if (it->name == currentnName)
-                {
+        if (current->checkFile(currentnName)){
+            for (auto it = current->files->begin(); it != current->files->end(); ++it){
+                if (it->name == currentnName){
                     it->name = newName;
                     cout << it->name << endl;
                     return;
                 }
             }
         }
-        else if (current->checkDirectory(currentnName))
-        {
-            for (auto it = current->directories->begin(); it != current->directories->end(); ++it)
-            {
-                if (it->name == currentnName)
-                {
+        else if (current->checkDirectory(currentnName)) {
+            for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
+                if (it->name == currentnName){
                     // do update the path of the directory as well
                     it->path = it->parent->path + newName + "\\";
                     it->name = newName;
@@ -264,8 +262,7 @@ public:
                 }
             }
         }
-        else
-        {
+        else{
             cout << "file or directory not found" << endl;
         }
     }
@@ -459,26 +456,6 @@ public:
         cout << "exit - exit program" << endl;
     }
 };
-
-// split function
-string split(string input, char splitter)
-{
-    string output = "";
-    int j = 0;
-    for (int i = 0; i < input.length(); i++)
-    {
-        if (input[i] == splitter)
-        {
-            j = i + 1;
-            break;
-        }
-    }
-    for (int i = j; i < input.length(); i++)
-    {
-        output += input[i];
-    }
-    return output;
-}
 
 int main()
 {
