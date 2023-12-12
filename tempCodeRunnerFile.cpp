@@ -1,2 +1,1 @@
-return "V:\\";
-        }
+   current = &(*it);

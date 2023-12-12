@@ -218,16 +218,37 @@ public:
         }
     }
 
+    void attrib(string att){
+       bool isExist = current->checkFile(att);
+         if(isExist){
+            for (auto it = current->files->begin(); it != current->files->end(); ++it){
+                if (it->name == att){
+                    cout<<"file name is "<<it->name<<endl;
+                    cout<<"file data is "<<it->data<<endl;
+                    return;
+                }
+            }
+         }
+         else{
+             cout<<"file not found"<<endl;
+         }
+        
+    }
+
     // input function
     bool input(){
-
+        
         cout << current->path << ">";
         string input = getInput();
 
         if (input == "exit"){
             system("cls");
             return false;
-        } 
+        }
+        else if(input.substr(0,7)=="attrib "){
+            attrib(input.substr(7,input.length()-1));
+        }
+        
         else if (input == "dir"){
             dir();
         } 
@@ -297,6 +318,7 @@ public:
         cout << "rmdir <directory name> - remove directory" << endl;
         cout << "rmfile <file name> - remove file" << endl;
         cout << "pwd see the current working directory" << endl;
+        cout << "rename <old name> <new name> rename file or directory" << endl;
         cout << "exit - exit program" << endl;
     }
 };
