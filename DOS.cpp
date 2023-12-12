@@ -307,36 +307,33 @@ public:
             cout << "file not found" << endl;
         }
     }
-    // mpve directory form soruce to destination or file
-    void moveF(string input){
-        string source = input.substr(0, input.find(" ")); // source is a file and distination is a directory
-        string destination = input.substr(input.find(" ") + 1, input.length() - 1);
-        bool file = current->checkFile(source);
-        bool directory = current->checkDirectory(source);
-         if(directory && file){
-            //remvoe file and add it in the directory
-            for (auto it = current->files->begin(); it != current->files->end(); ++it)
-            {
-                if (it->name == source)
-                {
-                    current->files->erase(it);
-                    break;
-                }
-            }
-            for (auto it = current->directories->begin(); it != current->directories->end(); ++it)
-            {
-                if (it->name == destination)
-                {
-                    it->files->push_back(Files(source, "data"));
-                    return;
-                }
-            }
-        }
-        else{
-            cout << "file or directory not found" << endl;
-        }
-        
+
+    // findf function
+    void findf(string name, string text){
+
     }
+
+    // findstr function
+    void findstr(string text){
+
+    }
+
+    // format function
+    void format(){
+        root = current = new Directory("V", nullptr);
+    }
+
+    // move directory form source to destination or file
+    void move(string input){
+
+    }
+
+
+    // copy directory form source to destination or file
+    void copy(string input){
+
+    }
+
     // input function
     bool input()
     {
@@ -385,7 +382,7 @@ public:
         else if (input.substr(0, 5) == "move ")
         {
             string sourceAndDes = input.substr(5, input.length() - 1);
-            moveF(sourceAndDes);
+            move(sourceAndDes);
         }
         else if (input.substr(0, 5) == "mkdir")
         {
