@@ -53,6 +53,19 @@ public:
         directories->push_back(Directory(_name, this));
     }
 
+    Files* find(string _name){
+        if(checkFile(_name)){
+            for (auto it = files->begin(); it != files->end(); ++it){
+                if (it->name == _name){
+                    return &(*it);
+                }
+            }
+        }
+        else{
+            return nullptr;
+        }
+        return nullptr;
+    }
     void printPath()
     {
         if (path == "V")
@@ -289,23 +302,15 @@ public:
     }
     void find(string filename)
     {
-        bool isExist = current->checkFile(filename);
-        if (isExist)
-        {
-            for (auto it = current->files->begin(); it != current->files->end(); ++it)
-            {
-                if (it->name == filename)
-                {
-                    cout << "file name is " << it->name << endl;
-                    cout << "file data is " << it->data << endl;
-                    return;
-                }
+       
+            Files* file = current->find(filename);
+            if (file == nullptr){
+                cout << "file not found" << endl;
+                return;
             }
-        }
-        else
-        {
-            cout << "file not found" << endl;
-        }
+            cout << "file name is " << file->name << endl;
+            cout << "file data is " << file->data << endl;
+       
     }
 
     // findf function
