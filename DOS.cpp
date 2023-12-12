@@ -116,7 +116,7 @@ public:
             for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
                 if (it->name == _name){
                     current = &(*it);
-                    break;
+                    return;
                 }
             }
             cout << "Directory not found" << endl;
@@ -153,6 +153,7 @@ public:
 
 
 
+
     // rmdir function
     void rmdir(string _name){
         for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
@@ -186,6 +187,36 @@ public:
             }
         }
     }
+    //rename function
+    void rename(string oldname){
+        string currentnName = oldname.substr(0,oldname.find(" "));
+        cout<<"current name is "<<currentnName<<endl;
+        string newName = oldname.substr(oldname.find(" ")+1,oldname.length()-1);
+        cout<<"new name is "<<newName<<endl;
+        if(current->checkFile(currentnName)){
+            for (auto it = current->files->begin(); it != current->files->end(); ++it){
+                if (it->name == currentnName){
+                    it->name=newName;
+                    cout<<it->name<<endl;
+                    return;
+                }
+            }
+        }
+        else if(current->checkDirectory(currentnName)){
+            for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
+                if (it->name == currentnName){
+                    // do update the path of the directory as well
+                    it->path=it->parent->path+newName+"\\";
+                    it->name=newName;
+                    cout<<it->name<<endl;
+                    return;
+                }
+            }
+        }
+        else{
+            cout<<"file or directory not found"<<endl;
+        }
+    }
 
     // input function
     bool input(){
@@ -215,7 +246,7 @@ public:
         else if (input == "cls"){
             system("cls");
         }
-        else if (input.substr(0, 3) == "cd"){
+        else if (input.substr(0, 3) == "cd "){
             cd(input.substr(3, input.length() - 1));
         }
         else if (input.substr(0, 5) == "mkdir"){
@@ -227,6 +258,13 @@ public:
         else if (input.substr(0, 5) == "rmdir"){
             rmdir(input.substr(6, input.length() - 1));
         } 
+        else if(input=="pwd"){
+            current->printPath();
+        }
+        else if(input.substr(0,6)=="rename"){
+            string oldname=input.substr(7,input.length()-1);
+            rename(oldname);
+        }
         else if (input.substr(0, 5) == "rmfil"){
             rmfile(input.substr(6, input.length() - 1));
         } 
@@ -258,6 +296,7 @@ public:
         cout << "mkfile <file name> - create file" << endl;
         cout << "rmdir <directory name> - remove directory" << endl;
         cout << "rmfile <file name> - remove file" << endl;
+        cout << "pwd see the current working directory" << endl;
         cout << "exit - exit program" << endl;
     }
 };
