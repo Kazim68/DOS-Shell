@@ -10,11 +10,13 @@ class Files
 public:
     string name;
     string data;
+    int size;
 
     Files(string _name, string _data)
     {
         name = _name;
         data = _data;
+        size = data.length();
     }
 
     void print()
@@ -109,6 +111,34 @@ public:
         }
         return false;
     }
+
+    // get directory through path
+    Directory *getDirectoryFromPath(string _path){
+        if (_path == "V:\\" || _path == "V:"){
+            return this;
+        }
+        else if (_path.find("\\") != string::npos) {
+            string name = _path.substr(0, _path.find("\\"));
+
+            if (name == "V:\\" || name == "V:"){
+                return this->getDirectoryFromPath(_path.substr(_path.find("\\") + 1, _path.length() - 1));
+            }
+
+            for (auto it = directories->begin(); it != directories->end(); ++it){
+                if (it->name == name){
+                    return it->getDirectoryFromPath(_path.substr(_path.find("\\") + 1, _path.length() - 1));
+                }
+            }
+        }
+        else{
+            for (auto it = directories->begin(); it != directories->end(); ++it){
+                if (it->name == _path){
+                    return &(*it);
+                }
+            }
+        }
+        return nullptr;
+    }
 };
 
 // tree class
@@ -138,30 +168,6 @@ public:
         cout << root->path << endl;
     }
 
-    // cd function
-    void cd(string _name)
-    {
-        if (_name == "..")
-        {
-            if (current->parent != nullptr)
-            {
-                current = current->parent;
-            }
-        }
-        else
-        {
-            for (auto it = current->directories->begin(); it != current->directories->end(); ++it)
-            {
-                if (it->name == _name)
-                {
-                    current = &(*it);
-                    return;
-                }
-            }
-            cout << "Directory not found" << endl;
-        }
-    }
-
     // dir function
     void dir()
     {
@@ -179,14 +185,21 @@ public:
                  << endl;
             for (auto it = current->files->begin(); it != current->files->end(); ++it)
             {
-                cout << "           File(s)         " << it->name << endl;
+                cout << "           File(s)         " << "(" << it->size << ") bytes " << it->name << endl;
             }
+
+            cout << endl << "\t\t(" << current->directories->size() << ") Dir(s)" << endl;
+            cout << "\t\t(" << current->files->size() << ") File(s)" << endl;
         }
     }
 
     // mkdir function
-    void mkdir(string _name)
-    {
+    void mkdir(string _name){
+
+        if (_name.find("\\") != string::npos){
+            cout << "Invalid syntax" << endl;
+            return;
+        }
 
         // checking if directory already exists
         if (!current->checkDirectory(_name))
@@ -318,9 +331,14 @@ public:
         }
     }
 
-    // findstr function
-    void findstr(string text){
-
+    // findStr function
+    void findStr(string text){
+        for (auto it = current->files->begin(); it != current->files->end(); ++it){
+            if (it->data.find(text) != string::npos){
+                cout << "file name is " << it->name << endl;
+                cout << "file data is " << it->data << endl;
+            }
+        }
     }
 
     // format function
@@ -342,85 +360,82 @@ public:
     // input function
     bool input()
     {
-
         cout << current->path << ">";
         string input = getInput();
 
-        if (input == "exit")
-        {
+        if (input == "exit"){
             system("cls");
             return false;
         }
-        else if (input.substr(0, 7) == "attrib ")
-        {
-            attrib(input.substr(7, input.length() - 1));
+        else if (input == "format"){
+            format();
         }
-
-        else if (input == "dir")
-        {
+        else if (input == "dir"){
             dir();
         }
-        else if (input == "cd..")
-        {
-            cd("..");
+        else if (input == "cd.." || input == "cd .."){
+            if (current->parent != nullptr) {
+                current = current->parent;
+            }
         }
-        else if (input == "cd/")
-        {
+        else if (input == "cd/"){
             current = root;
         }
-        else if (input == "cd.")
-        {
+        else if (input == "cd."){
             current->printPath();
         }
-        else if (input == "help")
-        {
+        else if (input == "help"){
             help();
         }
-        else if (input == "cls")
-        {
+        else if (input == "cls"){
             system("cls");
+            header();
         }
-        else if (input.substr(0, 3) == "cd ")
-        {
-            cd(input.substr(3, input.length() - 1));
+        else if (input.substr(0, 3) == "cd "){
+
+            Directory* temp = current->getDirectoryFromPath(input.substr(3, input.length() - 1));
+            if (temp != nullptr){
+                current = temp;
+            }
+            else{
+                cout << "Directory not found" << endl;
+            }
+
         }
-        else if (input.substr(0, 5) == "move ")
-        {
+        else if (input.substr(0, 8) == "findstr "){
+            findStr(input.substr(8, input.length() - 1));
+        }
+        else if (input.substr(0, 7) == "attrib "){
+            attrib(input.substr(7, input.length() - 1));
+        }
+        else if (input.substr(0, 5) == "move "){
             string sourceAndDes = input.substr(5, input.length() - 1);
             move(sourceAndDes);
         }
-        else if (input.substr(0, 5) == "mkdir")
-        {
+        else if (input.substr(0, 5) == "mkdir"){
             mkdir(input.substr(6, input.length() - 1));
         }
-        else if (input.substr(0, 6) == "mkfile")
-        {
+        else if (input.substr(0, 6) == "mkfile"){
             mkfile(input.substr(7, input.length() - 1));
         }
-        else if (input.substr(0, 5) == "rmdir")
-        {
+        else if (input.substr(0, 5) == "rmdir"){
             rmdir(input.substr(6, input.length() - 1));
         }
-        else if (input == "pwd")
-        {
+        else if (input == "pwd"){
             current->printPath();
         }
-        else if (input.substr(0, 6) == "rename")
-        {
+        else if (input.substr(0, 6) == "rename"){
             string oldname = input.substr(7, input.length() - 1);
             rename(oldname);
         }
-        else if (input.substr(0, 5) == "rmfil")
-        {
+        else if (input.substr(0, 5) == "rmfil"){
             rmfile(input.substr(6, input.length() - 1));
         }
-        else if (input.substr(0, 5) == "find ")
-        {
+        else if (input.substr(0, 5) == "find "){
             string filename = input.substr(5, input.length() - 1);
             find(filename);
         }
-        else
-        {
+        else{
             cout << "Invalid command" << endl;
         }
         return true;
@@ -437,6 +452,8 @@ public:
     // run function
     void run()
     {
+        system("cls");
+        header();
         while (input())
             ;
     }
@@ -456,6 +473,15 @@ public:
         cout << "pwd see the current working directory" << endl;
         cout << "rename <old name> <new name> rename file or directory" << endl;
         cout << "exit - exit program" << endl;
+        cout << "cls - clear screen" << endl;
+        cout << "format for format the disk" << endl;
+    }
+
+    void header(){
+        cout << "DOS Shell\tDSA Project\t" << endl;
+        cout << "2022-CS-115 && 2022-CS-123" << endl;
+        cout << "==========================" << endl;
+    
     }
 };
 
