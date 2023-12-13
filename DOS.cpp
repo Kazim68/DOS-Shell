@@ -10,11 +10,13 @@ class Files
 public:
     string name;
     string data;
+    int size;
 
     Files(string _name, string _data)
     {
         name = _name;
         data = _data;
+        size = data.length();
     }
 
     void print()
@@ -108,6 +110,10 @@ public:
         else if (_path.find("\\") != string::npos) {
             string name = _path.substr(0, _path.find("\\"));
 
+            if (name == "V:\\" || name == "V:"){
+                return this->getDirectoryFromPath(_path.substr(_path.find("\\") + 1, _path.length() - 1));
+            }
+
             for (auto it = directories->begin(); it != directories->end(); ++it){
                 if (it->name == name){
                     return it->getDirectoryFromPath(_path.substr(_path.find("\\") + 1, _path.length() - 1));
@@ -169,8 +175,11 @@ public:
                  << endl;
             for (auto it = current->files->begin(); it != current->files->end(); ++it)
             {
-                cout << "           File(s)         " << it->name << endl;
+                cout << "           File(s)         " << "(" << it->size << ") bytes " << it->name << endl;
             }
+
+            cout << endl << "\t\t(" << current->directories->size() << ") Dir(s)" << endl;
+            cout << "\t\t(" << current->files->size() << ") File(s)" << endl;
         }
     }
 
@@ -317,9 +326,14 @@ public:
 
     }
 
-    // findstr function
-    void findstr(string text){
-
+    // findStr function
+    void findStr(string text){
+        for (auto it = current->files->begin(); it != current->files->end(); ++it){
+            if (it->data.find(text) != string::npos){
+                cout << "file name is " << it->name << endl;
+                cout << "file data is " << it->data << endl;
+            }
+        }
     }
 
     // format function
@@ -382,6 +396,9 @@ public:
                 cout << "Directory not found" << endl;
             }
 
+        }
+        else if (input.substr(0, 8) == "findstr "){
+            findStr(input.substr(8, input.length() - 1));
         }
         else if (input.substr(0, 7) == "attrib "){
             attrib(input.substr(7, input.length() - 1));
