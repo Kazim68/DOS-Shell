@@ -55,12 +55,10 @@ public:
         directories->push_back(Directory(_name, this));
     }
 
-    Files* find(string _name){
-        if(checkFile(_name)){
-            for (auto it = files->begin(); it != files->end(); ++it){
-                if (it->name == _name){
-                    return &(*it);
-                }
+    Files* findFile(string _name){
+        for (auto it = files->begin(); it != files->end(); ++it){
+            if (it->name == _name){
+                return &(*it);
             }
         }
         return nullptr;
@@ -171,7 +169,7 @@ public:
     // dir function
     void dir()
     {
-        if (current->directories->size() == 0)
+        if (current->directories->size() == 0 && current->files->size() == 0)
         {
             cout << "no files" << endl;
         }
@@ -292,7 +290,7 @@ public:
 
     void attrib(string att)
     {
-            Files* file = current->find(att);
+            Files* file = current->findFile(att);
             if (file == nullptr){
                 cout << "file not found" << endl;
                 return;
@@ -303,7 +301,7 @@ public:
     void find(string filename)
     {
        
-            Files* file = current->find(filename);
+            Files* file = current->findFile(filename);
             if (file == nullptr){
                 cout << "file not found" << endl;
                 return;
@@ -314,8 +312,12 @@ public:
     }
 
     // findf function
-    void findf(string name, string text){
-        Files* file = current->find(name);
+    void findf(string input){
+
+        string name = input.substr(0, input.find(" "));
+        string text = input.substr(input.find(" ") + 1, input.length() - 1);
+
+        Files* file = current->findFile(name);
         if (file == nullptr){
             cout << "file not found" << endl;
             return;
@@ -404,6 +406,9 @@ public:
         }
         else if (input.substr(0, 8) == "findstr "){
             findStr(input.substr(8, input.length() - 1));
+        }
+        else if (input.substr(0, 6) == "findf "){
+            findf(input.substr(6, input.length() - 1));
         }
         else if (input.substr(0, 7) == "attrib "){
             attrib(input.substr(7, input.length() - 1));
