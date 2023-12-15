@@ -160,6 +160,7 @@ class Tree
 public:
     Directory *root;
     Directory *current;
+    string prompt = "> ";
     // queue
     // priority queue
 
@@ -211,7 +212,12 @@ public:
     // mkdir function
     void mkdir(string _name){
 
-        if (_name.find("\\") != string::npos){
+        if (_name.empty()){
+            cout << "Invalid syntax" << endl;
+            return;
+        }
+
+        if (_name.find("\\") != string::npos || _name == "V:\\" || _name == "V:"){
             cout << "Invalid syntax" << endl;
             return;
         }
@@ -243,8 +249,12 @@ public:
     }
 
     // mkfile function
-    void mkfile(string _name)
-    {
+    void mkfile(string _name){
+
+        if (_name.empty()){
+            cout << "Invalid syntax" << endl;
+            return;
+        }
 
         // checking for duplicate file names
         if (!current->checkFile(_name))
@@ -414,14 +424,12 @@ public:
     }
 
     // utility function to set path after moving directory
-    void setPathAfterMove(Directory* src, Directory* des){
+    void setPathAfterMove(Directory* src){
         for (auto it = src->directories->begin(); it != src->directories->end(); ++it){
-            it->path = des->path + it->name + "\\";
-            setPathAfterMove(&(*it), des);
+            it->path = src->path + it->name + "\\";
+            setPathAfterMove(&(*it));
         }
     }
-
-    // directory to directory parent and path bug
 
     // move directory form source to destination or file
     void move(string input){
@@ -474,9 +482,10 @@ public:
 
         // move directory to destination
         if (srcDir != nullptr){
-            desDir->directories->push_back(*srcDir);
             srcDir->parent = desDir;
-            setPathAfterMove(srcDir, desDir);
+            srcDir->path = desDir->path + srcDir->name + "\\";
+            desDir->directories->push_back(*srcDir);
+            setPathAfterMove(srcDir);
             deleteDirectory(src);
         }
         else if (srcFile != nullptr){
@@ -492,21 +501,47 @@ public:
 
     }
 
+    void tree(Directory* temp, int space = 0){
+        for (int i = space - 5; i > 0; i--){
+            if (i == space - 5){
+                cout << "|";
+            }
+            else{
+                cout << " ";
+            }
+        }
+        
+        if (space >= 5){
+            cout << "|_____";
+        }
+        cout << temp->name << endl;
+
+        for (auto it = temp->directories->begin(); it != temp->directories->end(); ++it){
+            tree(&(*it), space + 5);
+        }
+    }
+
     // input function
     bool input()
     {
-        cout << current->path << ">";
+        cout << current->path << prompt;
         string input = getInput();
 
         if (input == "exit"){
             system("cls");
             return false;
         }
+        else if (input == "prompt"){
+            prompt = prompt == "> " ? "$ " : "> ";
+        }
         else if (input == "format"){
             format();
         }
         else if (input == "dir"){
             dir();
+        }
+        else if (input == "tree"){
+            tree(current);
         }
         else if (input == "cd.." || input == "cd .."){
             if (current->parent != nullptr) {
@@ -620,6 +655,10 @@ public:
         cout << "exit - exit program" << endl;
         cout << "cls - clear screen" << endl;
         cout << "format for format the disk" << endl;
+        cout << "move <source> <destination> move file or directory" << endl;
+        cout << "copy <source> <destination> copy file or directory" << endl;
+        cout << "findstr <text> find text in files" << endl;
+        cout << "prompt change prompt" << endl;
     }
 
     void header(){
