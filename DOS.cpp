@@ -56,13 +56,28 @@ public:
     }
 
     Files* findFile(string _name){
-        for (auto it = files->begin(); it != files->end(); ++it){
-            if (it->name == _name){
-                return &(*it);
+        if (_name.find("V:\\") != string::npos || _name.find("V:") != string::npos){
+            return findFile(_name.substr(_name.find("\\") + 1, _name.length() - 1));
+        }
+        else if (_name.find("\\") != string::npos){
+            string name = _name.substr(0, _name.find("\\"));
+
+            for (auto it = directories->begin(); it != directories->end(); ++it){
+                if (it->name == name){
+                    return it->findFile(_name.substr(_name.find("\\") + 1, _name.length() - 1));
+                }
+            }
+        }
+        else {
+            for (auto it = files->begin(); it != files->end(); ++it){
+                if (it->name == _name){
+                    return &(*it);
+                }
             }
         }
         return nullptr;
     }
+
     void printPath()
     {
         if (path == "V")
@@ -111,7 +126,7 @@ public:
     }
 
     // get directory through path
-    Directory *getDirectoryFromPath(string _path){
+    Directory* getDirectoryFromPath(string _path){
         if (_path == "V:\\" || _path == "V:"){
             return this;
         }
@@ -145,6 +160,8 @@ class Tree
 public:
     Directory *root;
     Directory *current;
+    // queue
+    // priority queue
 
     Tree()
     {
@@ -348,11 +365,127 @@ public:
         root = current = new Directory("V", nullptr);
     }
 
-    // move directory form source to destination or file
-    void move(string input){
+    // utility function to delete a file given specified a path
+    void deleteFile(string src){
+        if (src.find("V:\\") != string::npos || src.find("V:") != string::npos){
+            return deleteFile(src.substr(src.find("\\") + 1, src.length() - 1));
+        }
+        else if (src.find("\\") != string::npos){
+            string name = src.substr(0, src.find("\\"));
 
+            for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
+                if (it->name == name){
+                    return deleteFile(src.substr(src.find("\\") + 1, src.length() - 1));
+                }
+            }
+        }
+        else {
+            for (auto it = current->files->begin(); it != current->files->end(); ++it){
+                if (it->name == src){
+                    current->files->erase(it);
+                    return;
+                }
+            }
+        }
     }
 
+    // utility function to delete a directory given specified a path
+    void deleteDirectory(string src){
+        if (src.find("V:\\") != string::npos || src.find("V:") != string::npos){
+            return deleteDirectory(src.substr(src.find("\\") + 1, src.length() - 1));
+        }
+        else if (src.find("\\") != string::npos){
+            string name = src.substr(0, src.find("\\"));
+
+            for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
+                if (it->name == name){
+                    return deleteDirectory(src.substr(src.find("\\") + 1, src.length() - 1));
+                }
+            }
+        }
+        else {
+            for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
+                if (it->name == src){
+                    current->directories->erase(it);
+                    return;
+                }
+            }
+        }
+    }
+
+    // utility function to set path after moving directory
+    void setPathAfterMove(Directory* src, Directory* des){
+        for (auto it = src->directories->begin(); it != src->directories->end(); ++it){
+            it->path = des->path + it->name + "\\";
+            setPathAfterMove(&(*it), des);
+        }
+    }
+
+    // directory to directory parent and path bug
+
+    // move directory form source to destination or file
+    void move(string input){
+        string src = input.substr(0, input.find(" "));
+        string des = input.substr(input.find(" ") + 1, input.length() - 1);
+
+        if (src.empty() || des.empty()){
+            cout << "Invalid syntax" << endl;
+            return;
+        }
+
+        // check if source exists
+        Directory* srcDir = current->getDirectoryFromPath(src);
+        Files* srcFile = current->findFile(src);
+        if (srcDir == nullptr && srcFile == nullptr){
+            cout << "Source not found" << endl;
+            return;
+        }
+
+        // check if destination exists
+        Directory* desDir = current->getDirectoryFromPath(des);
+        Files* desFile = current->findFile(des);
+        if (desFile != nullptr){
+            // simply copy content of source file to destination file and remove source file
+            if (srcFile != nullptr){
+                desFile->data = srcFile->data;
+                deleteFile(src);
+            }
+            else if (srcDir != nullptr){
+                cout << "Cannot move directory to file" << endl;
+            }
+            return;
+        }
+        else if (desDir == nullptr){
+            cout << "Destination not found" << endl;
+            return;
+        }
+
+        // check if destination is not a child of source
+        if (srcDir != nullptr){
+            Directory* temp = desDir;
+            while (temp != nullptr){
+                if (temp == srcDir){
+                    cout << "Cannot move directory to its child" << endl;
+                    return;
+                }
+                temp = temp->parent;
+            }
+        }
+
+        // move directory to destination
+        if (srcDir != nullptr){
+            desDir->directories->push_back(*srcDir);
+            srcDir->parent = desDir;
+            setPathAfterMove(srcDir, desDir);
+            deleteDirectory(src);
+        }
+        else if (srcFile != nullptr){
+            // move file to destination
+            desDir->files->push_back(*srcFile);
+            deleteFile(src);
+        }
+
+    }
 
     // copy directory form source to destination or file
     void copy(string input){
@@ -409,6 +542,12 @@ public:
         }
         else if (input.substr(0, 6) == "findf "){
             findf(input.substr(6, input.length() - 1));
+        }
+        else if (input.substr(0, 5) == "copy "){
+            copy(input.substr(5, input.length() - 1));
+        }
+        else if (input.substr(0, 5) == "move "){
+            move(input.substr(5, input.length() - 1));
         }
         else if (input.substr(0, 7) == "attrib "){
             attrib(input.substr(7, input.length() - 1));
@@ -468,6 +607,7 @@ public:
     {
         cout << "attrib - see the file data" << endl;
         cout << "find <file name> - find file" << endl;
+        cout << "findf <file name> <text> - find file with text" << endl;
         cout << "dir - list directory" << endl;
         cout << "cd.. - go to parent directory" << endl;
         cout << "cd <directory name> - go to directory" << endl;
