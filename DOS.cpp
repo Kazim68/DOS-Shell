@@ -55,8 +55,20 @@ public:
         directories->push_back(Directory(_name, this));
     }
 
-    Files* find(string _name){
-        if(checkFile(_name)){
+    Files* findFile(string _name){
+        if (_name.find("V:\\") != string::npos || _name.find("V:") != string::npos){
+            return findFile(_name.substr(_name.find("\\") + 1, _name.length() - 1));
+        }
+        else if (_name.find("\\") != string::npos){
+            string name = _name.substr(0, _name.find("\\"));
+
+            for (auto it = directories->begin(); it != directories->end(); ++it){
+                if (it->name == name){
+                    return it->findFile(_name.substr(_name.find("\\") + 1, _name.length() - 1));
+                }
+            }
+        }
+        else {
             for (auto it = files->begin(); it != files->end(); ++it){
                 if (it->name == _name){
                     return &(*it);
@@ -65,6 +77,7 @@ public:
         }
         return nullptr;
     }
+
     void printPath()
     {
         if (path == "V")
@@ -113,7 +126,7 @@ public:
     }
 
     // get directory through path
-    Directory *getDirectoryFromPath(string _path){
+    Directory* getDirectoryFromPath(string _path){
         if (_path == "V:\\" || _path == "V:"){
             return this;
         }
@@ -147,6 +160,9 @@ class Tree
 public:
     Directory *root;
     Directory *current;
+    string prompt = "> ";
+    // queue
+    // priority queue
 
     Tree()
     {
@@ -171,7 +187,7 @@ public:
     // dir function
     void dir()
     {
-        if (current->directories->size() == 0)
+        if (current->directories->size() == 0 && current->files->size() == 0)
         {
             cout << "no files" << endl;
         }
@@ -196,7 +212,12 @@ public:
     // mkdir function
     void mkdir(string _name){
 
-        if (_name.find("\\") != string::npos){
+        if (_name.empty()){
+            cout << "Invalid syntax" << endl;
+            return;
+        }
+
+        if (_name.find("\\") != string::npos || _name == "V:\\" || _name == "V:"){
             cout << "Invalid syntax" << endl;
             return;
         }
@@ -228,8 +249,12 @@ public:
     }
 
     // mkfile function
-    void mkfile(string _name)
-    {
+    void mkfile(string _name){
+
+        if (_name.empty()){
+            cout << "Invalid syntax" << endl;
+            return;
+        }
 
         // checking for duplicate file names
         if (!current->checkFile(_name))
@@ -292,7 +317,7 @@ public:
 
     void attrib(string att)
     {
-            Files* file = current->find(att);
+            Files* file = current->findFile(att);
             if (file == nullptr){
                 cout << "file not found" << endl;
                 return;
@@ -303,7 +328,7 @@ public:
     void find(string filename)
     {
        
-            Files* file = current->find(filename);
+            Files* file = current->findFile(filename);
             if (file == nullptr){
                 cout << "file not found" << endl;
                 return;
@@ -314,8 +339,12 @@ public:
     }
 
     // findf function
-    void findf(string name, string text){
-        Files* file = current->find(name);
+    void findf(string input){
+
+        string name = input.substr(0, input.find(" "));
+        string text = input.substr(input.find(" ") + 1, input.length() - 1);
+
+        Files* file = current->findFile(name);
         if (file == nullptr){
             cout << "file not found" << endl;
             return;
@@ -346,32 +375,173 @@ public:
         root = current = new Directory("V", nullptr);
     }
 
-    // move directory form source to destination or file
-    void move(string input){
+    // utility function to delete a file given specified a path
+    void deleteFile(string src){
+        if (src.find("V:\\") != string::npos || src.find("V:") != string::npos){
+            return deleteFile(src.substr(src.find("\\") + 1, src.length() - 1));
+        }
+        else if (src.find("\\") != string::npos){
+            string name = src.substr(0, src.find("\\"));
 
+            for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
+                if (it->name == name){
+                    return deleteFile(src.substr(src.find("\\") + 1, src.length() - 1));
+                }
+            }
+        }
+        else {
+            for (auto it = current->files->begin(); it != current->files->end(); ++it){
+                if (it->name == src){
+                    current->files->erase(it);
+                    return;
+                }
+            }
+        }
     }
 
+    // utility function to delete a directory given specified a path
+    void deleteDirectory(string src){
+        if (src.find("V:\\") != string::npos || src.find("V:") != string::npos){
+            return deleteDirectory(src.substr(src.find("\\") + 1, src.length() - 1));
+        }
+        else if (src.find("\\") != string::npos){
+            string name = src.substr(0, src.find("\\"));
+
+            for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
+                if (it->name == name){
+                    return deleteDirectory(src.substr(src.find("\\") + 1, src.length() - 1));
+                }
+            }
+        }
+        else {
+            for (auto it = current->directories->begin(); it != current->directories->end(); ++it){
+                if (it->name == src){
+                    current->directories->erase(it);
+                    return;
+                }
+            }
+        }
+    }
+
+    // utility function to set path after moving directory
+    void setPathAfterMove(Directory* src){
+        for (auto it = src->directories->begin(); it != src->directories->end(); ++it){
+            it->path = src->path + it->name + "\\";
+            setPathAfterMove(&(*it));
+        }
+    }
+
+    // move directory form source to destination or file
+    void move(string input){
+        string src = input.substr(0, input.find(" "));
+        string des = input.substr(input.find(" ") + 1, input.length() - 1);
+
+        if (src.empty() || des.empty()){
+            cout << "Invalid syntax" << endl;
+            return;
+        }
+
+        // check if source exists
+        Directory* srcDir = current->getDirectoryFromPath(src);
+        Files* srcFile = current->findFile(src);
+        if (srcDir == nullptr && srcFile == nullptr){
+            cout << "Source not found" << endl;
+            return;
+        }
+
+        // check if destination exists
+        Directory* desDir = current->getDirectoryFromPath(des);
+        Files* desFile = current->findFile(des);
+        if (desFile != nullptr){
+            // simply copy content of source file to destination file and remove source file
+            if (srcFile != nullptr){
+                desFile->data = srcFile->data;
+                deleteFile(src);
+            }
+            else if (srcDir != nullptr){
+                cout << "Cannot move directory to file" << endl;
+            }
+            return;
+        }
+        else if (desDir == nullptr){
+            cout << "Destination not found" << endl;
+            return;
+        }
+
+        // check if destination is not a child of source
+        if (srcDir != nullptr){
+            Directory* temp = desDir;
+            while (temp != nullptr){
+                if (temp == srcDir){
+                    cout << "Cannot move directory to its child" << endl;
+                    return;
+                }
+                temp = temp->parent;
+            }
+        }
+
+        // move directory to destination
+        if (srcDir != nullptr){
+            srcDir->parent = desDir;
+            srcDir->path = desDir->path + srcDir->name + "\\";
+            desDir->directories->push_back(*srcDir);
+            setPathAfterMove(srcDir);
+            deleteDirectory(src);
+        }
+        else if (srcFile != nullptr){
+            // move file to destination
+            desDir->files->push_back(*srcFile);
+            deleteFile(src);
+        }
+
+    }
 
     // copy directory form source to destination or file
     void copy(string input){
 
     }
 
+    void tree(Directory* temp, int space = 0){
+        for (int i = space - 5; i > 0; i--){
+            if (i == space - 5){
+                cout << "|";
+            }
+            else{
+                cout << " ";
+            }
+        }
+        
+        if (space >= 5){
+            cout << "|_____";
+        }
+        cout << temp->name << endl;
+
+        for (auto it = temp->directories->begin(); it != temp->directories->end(); ++it){
+            tree(&(*it), space + 5);
+        }
+    }
+
     // input function
     bool input()
     {
-        cout << current->path << ">";
+        cout << current->path << prompt;
         string input = getInput();
 
         if (input == "exit"){
             system("cls");
             return false;
         }
+        else if (input == "prompt"){
+            prompt = prompt == "> " ? "$ " : "> ";
+        }
         else if (input == "format"){
             format();
         }
         else if (input == "dir"){
             dir();
+        }
+        else if (input == "tree"){
+            tree(current);
         }
         else if (input == "cd.." || input == "cd .."){
             if (current->parent != nullptr) {
@@ -404,6 +574,15 @@ public:
         }
         else if (input.substr(0, 8) == "findstr "){
             findStr(input.substr(8, input.length() - 1));
+        }
+        else if (input.substr(0, 6) == "findf "){
+            findf(input.substr(6, input.length() - 1));
+        }
+        else if (input.substr(0, 5) == "copy "){
+            copy(input.substr(5, input.length() - 1));
+        }
+        else if (input.substr(0, 5) == "move "){
+            move(input.substr(5, input.length() - 1));
         }
         else if (input.substr(0, 7) == "attrib "){
             attrib(input.substr(7, input.length() - 1));
@@ -463,6 +642,7 @@ public:
     {
         cout << "attrib - see the file data" << endl;
         cout << "find <file name> - find file" << endl;
+        cout << "findf <file name> <text> - find file with text" << endl;
         cout << "dir - list directory" << endl;
         cout << "cd.. - go to parent directory" << endl;
         cout << "cd <directory name> - go to directory" << endl;
@@ -475,6 +655,10 @@ public:
         cout << "exit - exit program" << endl;
         cout << "cls - clear screen" << endl;
         cout << "format for format the disk" << endl;
+        cout << "move <source> <destination> move file or directory" << endl;
+        cout << "copy <source> <destination> copy file or directory" << endl;
+        cout << "findstr <text> find text in files" << endl;
+        cout << "prompt change prompt" << endl;
     }
 
     void header(){
