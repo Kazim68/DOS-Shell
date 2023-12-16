@@ -2,6 +2,12 @@
     "files.associations": {
         "iostream": "cpp",
         "xstring": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "queue": "cpp",
+        "span": "cpp",
+        "vector": "cpp",
+        "xutility": "cpp"
     }
 }

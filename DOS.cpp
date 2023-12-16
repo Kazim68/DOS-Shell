@@ -2,6 +2,7 @@
 #include <list>
 #include <iterator>
 #include <string>
+#include <queue>
 using namespace std;
 
 // files class
@@ -22,6 +23,10 @@ public:
     void print()
     {
         cout << data << endl;
+    }
+
+    bool operator<(const Files& other) const {
+        return size < other.size;
     }
 };
 
@@ -161,12 +166,16 @@ public:
     Directory *root;
     Directory *current;
     string prompt = "> ";
-    // queue
-    // priority queue
+    queue<Files*> *printFiles;
+    priority_queue<Files*> *printFilesPriority;
+    int timer;
 
     Tree()
     {
         current = root = new Directory("V", nullptr);
+        printFiles = new queue<Files*>();
+        printFilesPriority = new priority_queue<Files*>();
+        timer = 0;
     }
 
     void addFile(string _name, string _data)
@@ -595,6 +604,64 @@ public:
         return Files(src->name, src->data);
     }
 
+    // add file to queue
+    void print(string input){
+        Files * file = current->findFile(input);
+
+        if (file == nullptr){
+            cout << "File not found" << endl;
+            return;
+        }
+
+        printFiles->push(file);
+    }
+
+    // add file to priority queue
+    void pprint(string input){
+        Files * file = current->findFile(input);
+
+        if (file == nullptr){
+            cout << "File not found" << endl;
+            return;
+        }
+
+        printFilesPriority->push(file);
+    }
+
+    // print files in queue
+    void Queue(){
+        if (printFiles->empty()){
+            cout << "No files in queue" << endl;
+            return;
+        }
+
+        for(int i = 0; i < printFiles->size(); i++){
+            Files* temp = printFiles->front();
+            printFiles->pop();
+            cout << temp->name << endl;
+            printFiles->push(temp);
+        }        
+    }
+
+    // print files in priority queue
+    void pqueue(){
+        if (printFilesPriority->empty()){
+            cout << "No files in queue" << endl;
+            return;
+        }
+
+        priority_queue<Files*> *temp = new priority_queue<Files*>();
+
+        while (!printFilesPriority->empty()){
+            Files* file = printFilesPriority->top();
+            printFilesPriority->pop();
+            cout << file->name << endl;
+            temp->push(file);
+        }
+
+        printFilesPriority = temp;
+    }
+
     void tree(Directory* temp, int space = 0){
         for (int i = space - 5; i > 0; i--){
             if (i == space - 5){
@@ -690,6 +757,18 @@ public:
         else if (input.substr(0, 5) == "rmdir"){
             rmdir(input.substr(6, input.length() - 1));
         }
+        else if (input.substr(0, 6) == "print "){
+            print(input.substr(6, input.length() - 1));
+        }
+        else if (input.substr(0, 7) == "pprint "){
+            pprint(input.substr(7, input.length() - 1));
+        }
+        else if (input.substr(0, 5) == "queue"){
+            Queue();
+        }
+        else if (input.substr(0, 6) == "pqueue"){
+            pqueue();
+        }
         else if (input == "pwd"){
             current->printPath();
         }
@@ -707,6 +786,19 @@ public:
         else{
             cout << "Invalid command" << endl;
         }
+
+        timer++;
+
+        if (timer == 3){
+            timer = 0;
+            if (!printFiles->empty()){
+                printFiles->pop();
+            }
+            if (!printFilesPriority->empty()){
+                printFilesPriority->pop();
+            }
+        }
+
         return true;
     }
 
@@ -749,6 +841,11 @@ public:
         cout << "copy <source> <destination> copy file or directory" << endl;
         cout << "findstr <text> find text in files" << endl;
         cout << "prompt change prompt" << endl;
+        cout << "tree prints all directories in tree structure" << endl;
+        cout << "print <file name> add file to queue" << endl;
+        cout << "pprint <file name> add file to priority queue" << endl;
+        cout << "queue print files in queue" << endl;
+        cout << "pqueue print files in priority queue" << endl;
     }
 
     void header(){
@@ -757,6 +854,14 @@ public:
         cout << "==========================" << endl;
     
     }
+};
+
+
+// text editor
+class TextEditor
+{
+public:
+    // TO-DO
 };
 
 int main()
