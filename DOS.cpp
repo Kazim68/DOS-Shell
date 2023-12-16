@@ -3,7 +3,22 @@
 #include <iterator>
 #include <string>
 #include <queue>
+#include <conio.h>
+#include <windows.h>
 using namespace std;
+
+
+// gotoxy function
+void gotoxy( int column, int line ){
+    COORD coord;
+    coord.X = column;
+    coord.Y = line;
+    SetConsoleCursorPosition(
+    GetStdHandle( STD_OUTPUT_HANDLE ),
+    coord
+    );
+}
+
 
 // files class
 class Files
@@ -158,6 +173,178 @@ public:
         return nullptr;
     }
 };
+
+
+// text editor
+class TextEditor
+{
+public:
+    int cursorX;
+    int cursorY;
+    list<list<char>> *lines;
+    list<list<char>>::iterator rowItr;
+    list<char>::iterator colItr;
+
+    TextEditor(){
+        cursorX = cursorY = 0;
+        lines = new list<list<char>>();
+        rowItr = lines->begin();
+        colItr = rowItr->begin();
+    }
+
+    void loadFile(Files *file){
+        string data = file->data;
+        string line = "";
+
+        // copying the data into lines
+        for (int i = 0; i < data.length(); i++){
+            if (data[i] == '\n'){
+                rowItr = lines->insert(rowItr, list<char>());
+                for (int j = 0; j < line.length(); j++){
+                    rowItr->push_back(line[j]);
+                }
+                line = "";
+                rowItr++;
+            }
+            else{
+                line += data[i];
+            }
+        }
+
+        // if last line is not empty
+        if (line.length() > 0){
+            rowItr = lines->insert(rowItr, list<char>());
+            for (int j = 0; j < line.length(); j++){
+                rowItr->push_back(line[j]);
+            }
+        }
+        rowItr = lines->begin();
+        colItr = rowItr->begin();
+    }
+
+    void print(){
+        for (auto it = lines->begin(); it != lines->end(); ++it){
+            for (auto it2 = it->begin(); it2 != it->end(); ++it2){
+                cout << *it2;
+            }
+            cout << endl;
+        }
+    }
+
+    void moveCursor(int x, int y){
+        cursorX += x;
+        cursorY += y;
+
+        if (cursorX < 0){
+            cursorX = 0;
+        }
+        else if (cursorX >= rowItr->size()){
+            cursorX = rowItr->size() - 1;
+        }
+
+        if (cursorY < 0){
+            cursorY = 0;
+        }
+        else if (cursorY >= lines->size()){
+            cursorY = lines->size() - 1;
+        }
+
+        gotoxy(cursorX, cursorY);
+
+        rowItr = lines->begin();
+        for (int i = 0; i < cursorY; i++){
+            rowItr++;
+        }
+
+        colItr = rowItr->begin();
+        for (int i = 0; i < cursorX; i++){
+            colItr++;
+        }
+    }
+
+    void insert(char c){
+        rowItr->insert(colItr, c);
+        colItr++;
+    }
+
+    void remove(){
+        if (colItr != rowItr->begin()){
+            colItr--;
+            colItr = rowItr->erase(colItr);
+        }
+        else if (rowItr != lines->begin()){
+            rowItr--;
+            colItr = rowItr->end();
+            colItr = rowItr->erase(colItr);
+        }
+    }
+
+    void save(Files *file){
+        string data = "";
+        for (auto it = lines->begin(); it != lines->end(); ++it){
+            for (auto it2 = it->begin(); it2 != it->end(); ++it2){
+                data += *it2;
+            }
+            data += "\n";
+        }
+        file->data = data;
+    }
+
+    void run(Files *file){
+        loadFile(file);
+
+        // changing color of console
+        HANDLE h = GetStdHandle ( STD_OUTPUT_HANDLE );
+        WORD wOldColorAttrs;
+        CONSOLE_SCREEN_BUFFER_INFO csbiInfo;
+
+        GetConsoleScreenBufferInfo(h, &csbiInfo);
+        wOldColorAttrs = csbiInfo.wAttributes;
+
+        SetConsoleTextAttribute(h, BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED | FOREGROUND_INTENSITY);
+
+        system("cls");
+
+        print();
+
+        while (true){
+            char c = getch();
+            if (c == 27){
+                break;
+            }
+            else if (c == 72){
+                moveCursor(0, -1);
+            }
+            else if (c == 80){
+                moveCursor(0, 1);
+            }
+            else if (c == 75){
+                moveCursor(-1, 0);
+            }
+            else if (c == 77){
+                moveCursor(1, 0);
+            }
+            else if (c == 13){
+                rowItr = lines->insert(rowItr, list<char>());
+                colItr = rowItr->begin();
+                moveCursor(0, 1);
+            }
+            else if (c == 8){
+                remove();
+            }
+            else{
+                insert(c);
+            }
+            system("cls");
+            print();
+        }
+
+        save(file);
+        SetConsoleTextAttribute ( h, wOldColorAttrs);
+        system("cls");
+    }
+};
+
 
 // tree class
 class Tree
@@ -682,6 +869,17 @@ public:
         }
     }
 
+    void openEditor(string filename){
+        Files* file = current->findFile(filename);
+        if (file == nullptr){
+            cout << "File not found" << endl;
+            return;
+        }
+
+        TextEditor editor;
+        editor.run(file);
+    }
+
     // input function
     bool input()
     {
@@ -772,6 +970,10 @@ public:
         else if (input == "pwd"){
             current->printPath();
         }
+        else if (input.substr(0, 5) == "edit "){
+            openEditor(input.substr(5, input.length() - 1));
+            header();
+        }
         else if (input.substr(0, 6) == "rename"){
             string oldname = input.substr(7, input.length() - 1);
             rename(oldname);
@@ -846,6 +1048,7 @@ public:
         cout << "pprint <file name> add file to priority queue" << endl;
         cout << "queue print files in queue" << endl;
         cout << "pqueue print files in priority queue" << endl;
+        cout << "edit <fileName> opens editor to edit file" << endl;
     }
 
     void header(){
@@ -854,14 +1057,6 @@ public:
         cout << "==========================" << endl;
     
     }
-};
-
-
-// text editor
-class TextEditor
-{
-public:
-    // TO-DO
 };
 
 int main()
