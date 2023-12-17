@@ -5,6 +5,7 @@
 #include <queue>
 #include <conio.h>
 #include <windows.h>
+#include <stack>
 using namespace std;
 
 
@@ -174,20 +175,33 @@ public:
     }
 };
 
+// class to store current condition of text
+class Condition{
+public:
+    list<list<char>> *lines;
+    list<list<char>>::iterator rowItr;
+    list<char>::iterator colItr;
+    int cursorX, cursorY;
+};
 
 // text editor
-class TextEditor
-{
+class TextEditor {
 public:
     int cursorX;
     int cursorY;
     list<list<char>> *lines;
     list<list<char>>::iterator rowItr;
     list<char>::iterator colItr;
+    stack<Condition*> *redo;
+    deque<Condition*> *undo;
+
 
     TextEditor(){
         cursorX = cursorY = 0;
         lines = new list<list<char>>();
+        lines->push_back(list<char>());
+        redo = new stack<Condition*>();
+        undo = new deque<Condition*>();
         rowItr = lines->begin();
         colItr = rowItr->begin();
     }
@@ -222,6 +236,55 @@ public:
         colItr = rowItr->begin();
     }
 
+    // save current condition of text
+    void saveCondition(){
+        Condition* condition = new Condition();
+        condition->lines->push_back(list<char>());
+
+        auto r_itr = condition->lines->begin();
+        for (auto it = lines->begin(); it != lines->end(); it++, r_itr++){
+
+            condition->lines->push_back(list<char>());
+            for (auto it2 = it->begin(); it2 != it->end(); it2++){
+                r_itr->push_back(*it2);
+            }
+        }
+        cout << "data copied" << endl;
+
+        condition->rowItr = condition->lines->begin();
+        for (int i = 0; i < cursorY; i++){
+            condition->rowItr++;
+        }
+        condition->colItr = condition->rowItr->begin();
+        for (int i = 0; i < cursorX; i++){
+            condition->colItr++;
+        }
+        condition->cursorX = cursorX;
+        condition->cursorY = cursorY;
+
+        undo->push_back(condition);
+    }
+
+    // load previous condition of text
+    void loadCondition(){
+        Condition* condition = undo->back();
+        undo->pop_back();
+
+        redo->push(condition);
+
+        lines = condition->lines;
+        rowItr = lines->begin();
+        cursorX = condition->cursorX;
+        cursorY = condition->cursorY;
+        for (int i = 0; i < cursorY; i++){
+            rowItr++;
+        }
+        colItr = rowItr->begin();
+        for (int i = 0; i < cursorX; i++){
+            colItr++;
+        }
+    }
+
     void print(){
         for (auto it = lines->begin(); it != lines->end(); ++it){
             for (auto it2 = it->begin(); it2 != it->end(); ++it2){
@@ -231,53 +294,7 @@ public:
         }
     }
 
-    void moveCursor(int x, int y){
-        cursorX += x;
-        cursorY += y;
 
-        if (cursorX < 0){
-            cursorX = 0;
-        }
-        else if (cursorX >= rowItr->size()){
-            cursorX = rowItr->size() - 1;
-        }
-
-        if (cursorY < 0){
-            cursorY = 0;
-        }
-        else if (cursorY >= lines->size()){
-            cursorY = lines->size() - 1;
-        }
-
-        gotoxy(cursorX, cursorY);
-
-        rowItr = lines->begin();
-        for (int i = 0; i < cursorY; i++){
-            rowItr++;
-        }
-
-        colItr = rowItr->begin();
-        for (int i = 0; i < cursorX; i++){
-            colItr++;
-        }
-    }
-
-    void insert(char c){
-        rowItr->insert(colItr, c);
-        colItr++;
-    }
-
-    void remove(){
-        if (colItr != rowItr->begin()){
-            colItr--;
-            colItr = rowItr->erase(colItr);
-        }
-        else if (rowItr != lines->begin()){
-            rowItr--;
-            colItr = rowItr->end();
-            colItr = rowItr->erase(colItr);
-        }
-    }
 
     void save(Files *file){
         string data = "";
@@ -290,57 +307,136 @@ public:
         file->data = data;
     }
 
+    void moveUp(){
+        if (cursorY != 0){
+            cursorY--;
+            rowItr--;
+            if (cursorX >= rowItr->size()){
+                cursorX = rowItr->size() - 1;
+            }
+            colItr = rowItr->begin();
+            for (int i = 0; i < cursorX; i++){
+                colItr++;
+            }
+        }
+    }
+
+    void moveDown(){
+        if (cursorY != lines->size() - 1){
+            cursorY++;
+            rowItr++;
+            if (cursorX >= rowItr->size()){
+                cursorX = rowItr->size() - 1;
+            }
+            colItr = rowItr->begin();
+            for (int i = 0; i < cursorX; i++){
+                colItr++;
+            }
+        }
+    }
+
+    void moveLeft(){
+        if (cursorX == 0 && cursorY != 0){
+            rowItr--;
+            cursorY--;
+            cursorX = rowItr->size() - 1;
+            colItr = rowItr->begin();
+            for (int i = 0; i < cursorX; i++){
+                colItr++;
+            }
+        }
+        else if (cursorX != 0){
+            cursorX--;
+            colItr--;
+        }
+    }
+
+    void moveRight(){
+        if (cursorX == rowItr->size() - 1 && cursorY != lines->size() - 1){
+            rowItr++;
+            cursorY++;
+            cursorX = 0;
+            colItr = rowItr->begin();
+        }
+        else if (cursorX != rowItr->size() - 1){
+            cursorX++;
+            colItr++;
+        }
+    }
+
+    void addNewLine(){
+
+        // first copy the rest of the list
+        list<char> *temp = new list<char>();
+        for (auto it = colItr; it != rowItr->end(); ++it){
+            temp->push_back(*it);
+        }
+        
+        // erase it in the current line and paste in the next line
+        rowItr->erase(colItr, rowItr->end());
+        rowItr = lines->insert(++rowItr, *temp);
+        colItr = rowItr->begin();
+        
+        cursorY++;
+        cursorX = 0;
+    }
+
+    void addChar(char c){
+        rowItr->insert(colItr, c);
+        cursorX++;
+    }
+
     void run(Files *file){
         loadFile(file);
 
-        // changing color of console
-        HANDLE h = GetStdHandle ( STD_OUTPUT_HANDLE );
-        WORD wOldColorAttrs;
-        CONSOLE_SCREEN_BUFFER_INFO csbiInfo;
-
-        GetConsoleScreenBufferInfo(h, &csbiInfo);
-        wOldColorAttrs = csbiInfo.wAttributes;
-
-        SetConsoleTextAttribute(h, BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED | FOREGROUND_INTENSITY);
-
+        system("color F0");
         system("cls");
 
         print();
 
+        bool modify = false;
+
+        if (rowItr->empty()){
+            rowItr->push_back(' ');
+            colItr = rowItr->begin();
+        }
+
         while (true){
+
+            // cout << rowItr->size() << endl;
+            // cout << cursorX << endl;
+            // cout << *colItr << endl;
+
+            gotoxy(cursorX, cursorY);
             char c = getch();
-            if (c == 27){
+
+            if (c == 0)
+                continue;
+            else if (c == 72){
+                moveUp();
+            }
+            else if (c == 13){  // enter key pressed
+                addNewLine();
+                modify = true;
+            }
+            else if (c == 27){  // escape key pressed
                 break;
             }
-            else if (c == 72){
-                moveCursor(0, -1);
+            else {      // insert character
+                addChar(c);
+                modify = true;
             }
-            else if (c == 80){
-                moveCursor(0, 1);
+
+
+            if (modify){
+                system("cls");
+                print();
+                modify = false;
             }
-            else if (c == 75){
-                moveCursor(-1, 0);
-            }
-            else if (c == 77){
-                moveCursor(1, 0);
-            }
-            else if (c == 13){
-                rowItr = lines->insert(rowItr, list<char>());
-                colItr = rowItr->begin();
-                moveCursor(0, 1);
-            }
-            else if (c == 8){
-                remove();
-            }
-            else{
-                insert(c);
-            }
-            system("cls");
-            print();
         }
 
         save(file);
-        SetConsoleTextAttribute ( h, wOldColorAttrs);
+        system("color 07");
         system("cls");
     }
 };
@@ -972,6 +1068,7 @@ public:
         }
         else if (input.substr(0, 5) == "edit "){
             openEditor(input.substr(5, input.length() - 1));
+            system("cls");
             header();
         }
         else if (input.substr(0, 6) == "rename"){
