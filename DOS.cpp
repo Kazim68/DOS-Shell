@@ -182,6 +182,23 @@ public:
     list<list<char>>::iterator rowItr;
     list<char>::iterator colItr;
     int cursorX, cursorY;
+
+    Condition(){
+        lines = new list<list<char>>();
+        lines->push_back(list<char>());
+        rowItr = lines->begin();
+        colItr = rowItr->begin();
+        cursorX = cursorY = 0;
+    }
+
+    printData(){
+        for (auto it = lines->begin(); it != lines->end(); ++it){
+            for (auto it2 = it->begin(); it2 != it->end(); ++it2){
+                cout << *it2;
+            }
+            cout << endl;
+        }
+    }
 };
 
 // text editor
@@ -239,7 +256,6 @@ public:
     // save current condition of text
     void saveCondition(){
         Condition* condition = new Condition();
-        condition->lines->push_back(list<char>());
 
         auto r_itr = condition->lines->begin();
         for (auto it = lines->begin(); it != lines->end(); it++, r_itr++){
@@ -249,7 +265,6 @@ public:
                 r_itr->push_back(*it2);
             }
         }
-        cout << "data copied" << endl;
 
         condition->rowItr = condition->lines->begin();
         for (int i = 0; i < cursorY; i++){
@@ -263,14 +278,15 @@ public:
         condition->cursorY = cursorY;
 
         undo->push_back(condition);
+
+        if (undo->size() > 5){
+            undo->pop_front();
+        }
+
     }
 
     // load previous condition of text
-    void loadCondition(){
-        Condition* condition = undo->back();
-        undo->pop_back();
-
-        redo->push(condition);
+    void loadCondition(Condition* condition){
 
         lines = condition->lines;
         rowItr = lines->begin();
@@ -312,7 +328,7 @@ public:
             cursorY--;
             rowItr--;
             if (cursorX >= rowItr->size()){
-                cursorX = rowItr->size() - 1;
+                cursorX = rowItr->size();
             }
             colItr = rowItr->begin();
             for (int i = 0; i < cursorX; i++){
@@ -326,7 +342,7 @@ public:
             cursorY++;
             rowItr++;
             if (cursorX >= rowItr->size()){
-                cursorX = rowItr->size() - 1;
+                cursorX = rowItr->size();
             }
             colItr = rowItr->begin();
             for (int i = 0; i < cursorX; i++){
@@ -339,7 +355,7 @@ public:
         if (cursorX == 0 && cursorY != 0){
             rowItr--;
             cursorY--;
-            cursorX = rowItr->size() - 1;
+            cursorX = rowItr->size();
             colItr = rowItr->begin();
             for (int i = 0; i < cursorX; i++){
                 colItr++;
@@ -352,15 +368,79 @@ public:
     }
 
     void moveRight(){
-        if (cursorX == rowItr->size() - 1 && cursorY != lines->size() - 1){
+        if (cursorX > rowItr->size() - 1 && cursorY != lines->size() - 1){
             rowItr++;
             cursorY++;
             cursorX = 0;
             colItr = rowItr->begin();
         }
-        else if (cursorX != rowItr->size() - 1){
+        else if (cursorX <= rowItr->size() - 1){
             cursorX++;
             colItr++;
+        }
+    }
+
+    void removeBack(){
+        if (cursorX == 0 && cursorY != 0){
+
+            // copy data of this line
+            list<char> *temp = new list<char>();
+            for (auto it = colItr; it != rowItr->end(); ++it){
+                temp->push_back(*it);
+            }
+
+            // erase this line
+            rowItr = lines->erase(rowItr);
+            
+            // move to previous line
+            rowItr--;
+            cursorY--;
+            cursorX = rowItr->size();
+            colItr = rowItr->begin();
+            for (int i = 0; i < cursorX; i++){
+                colItr++;
+            }
+
+            // paste data of next line to current line
+            for (auto it = temp->begin(); it != temp->end(); ++it){
+                rowItr->push_back(*it);
+            }
+        }
+        else if (cursorX != 0){
+            cursorX--;
+            colItr--;
+            colItr = rowItr->erase(colItr);
+        }
+    }
+
+    void removeForward(){
+        if (cursorX == rowItr->size() && cursorY != lines->size() - 1){
+
+            // copy data of next line
+            list<char> *temp = new list<char>();
+            auto tempItr = rowItr;
+            tempItr++;
+            for (auto it = tempItr->begin(); it != tempItr->end(); ++it){
+                temp->push_back(*it);
+            }
+
+            // erase next line
+            //rowItr = lines->erase(tempItr);
+            lines->erase(tempItr);
+
+            // paste data of next line to current line
+            for (auto it = temp->begin(); it != temp->end(); ++it){
+                rowItr->push_back(*it);
+            }
+
+            // reset column iterator
+            colItr = rowItr->begin();
+            for (int i = 0; i < cursorX; i++){
+                colItr++;
+            }
+        }
+        else if (cursorX != rowItr->size()){
+            colItr = rowItr->erase(colItr);
         }
     }
 
@@ -371,7 +451,7 @@ public:
         for (auto it = colItr; it != rowItr->end(); ++it){
             temp->push_back(*it);
         }
-        
+
         // erase it in the current line and paste in the next line
         rowItr->erase(colItr, rowItr->end());
         rowItr = lines->insert(++rowItr, *temp);
@@ -384,6 +464,17 @@ public:
     void addChar(char c){
         rowItr->insert(colItr, c);
         cursorX++;
+    }
+
+    void undoCommand(){
+        if (!undo->empty()){
+            Condition* currentCondition = undo->back();
+            undo->pop_back();
+            redo->push(currentCondition);
+            loadCondition(currentCondition);
+            system("cls");
+            print();
+        }
     }
 
     void run(Files *file){
@@ -415,14 +506,38 @@ public:
             else if (c == 72){
                 moveUp();
             }
+            else if (c == 80){
+                moveDown();
+            }
+            else if (c == 75){
+                moveLeft();
+            }
+            else if (c == 77){
+                moveRight();
+            }
             else if (c == 13){  // enter key pressed
+                saveCondition();
                 addNewLine();
                 modify = true;
             }
             else if (c == 27){  // escape key pressed
                 break;
             }
+            else if (c == 8){   // backspace pressed
+                saveCondition();
+                removeBack();
+                modify = true;
+            }
+            else if (c == 83){  // delete pressed
+                saveCondition();    
+                removeForward();
+                modify = true;
+            }
+            else if (c == 26){  // CTRL + Z
+                undoCommand();
+            }
             else {      // insert character
+                saveCondition();
                 addChar(c);
                 modify = true;
             }
