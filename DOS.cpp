@@ -3,7 +3,21 @@
 #include <iterator>
 #include <string>
 #include <queue>
+#include <conio.h>
+#include <windows.h>
+#include <stack>
 using namespace std;
+
+// gotoxy function
+void gotoxy(int column, int line)
+{
+    COORD coord;
+    coord.X = column;
+    coord.Y = line;
+    SetConsoleCursorPosition(
+        GetStdHandle(STD_OUTPUT_HANDLE),
+        coord);
+}
 
 // files class
 class Files
@@ -177,6 +191,446 @@ public:
     }
 };
 
+// class to store current condition of text
+class Condition
+{
+public:
+    list<list<char>> *lines;
+    list<list<char>>::iterator rowItr;
+    list<char>::iterator colItr;
+    int cursorX, cursorY;
+
+    Condition()
+    {
+        lines = new list<list<char>>();
+        lines->push_back(list<char>());
+        rowItr = lines->begin();
+        colItr = rowItr->begin();
+        cursorX = cursorY = 0;
+    }
+
+    void printData()
+    {
+        for (auto it = lines->begin(); it != lines->end(); ++it)
+        {
+            for (auto it2 = it->begin(); it2 != it->end(); ++it2)
+            {
+                cout << *it2;
+            }
+            cout << endl;
+        }
+    }
+};
+
+// text editor
+class TextEditor
+{
+public:
+    int cursorX;
+    int cursorY;
+    list<list<char>> *lines;
+    list<list<char>>::iterator rowItr;
+    list<char>::iterator colItr;
+    stack<Condition *> *redo;
+    deque<Condition *> *undo;
+
+    TextEditor()
+    {
+        cursorX = cursorY = 0;
+        lines = new list<list<char>>();
+        lines->push_back(list<char>());
+        redo = new stack<Condition *>();
+        undo = new deque<Condition *>();
+        rowItr = lines->begin();
+        colItr = rowItr->begin();
+    }
+
+    void loadFile(Files *file){
+        string data = file->data;
+        string line = "";
+
+        // copying the data into lines
+        for (int i = 0; i < data.length(); i++){
+            if (data[i] == '\n'){
+                rowItr = lines->insert(rowItr, list<char>());
+                for (int j = 0; j < line.length(); j++){
+                    rowItr->push_back(line[j]);
+                }
+                line = "";
+                rowItr++;
+            }
+            else{
+                line += data[i];
+            }
+        }
+
+        // if last line is not empty
+        if (line.length() > 0){
+            rowItr = lines->insert(rowItr, list<char>());
+            for (int j = 0; j < line.length(); j++){
+                rowItr->push_back(line[j]);
+            }
+        }
+        rowItr = lines->begin();
+        colItr = rowItr->begin();
+
+        // removing last lines if it is empty
+        auto temp = lines->begin();
+        for (auto it = lines->begin(); it != lines->begin(); it++){
+            temp++;
+        }
+        temp++;
+        if (temp->empty()){
+            lines->erase(temp);
+        }
+    }
+
+    // save current condition of text
+    void saveCondition()
+    {
+        Condition *condition = new Condition();
+
+        auto r_itr = condition->lines->begin();
+        for (auto it = lines->begin(); it != lines->end(); it++, r_itr++){
+
+            condition->lines->push_back(list<char>());
+            for (auto it2 = it->begin(); it2 != it->end(); it2++)
+            {
+                r_itr->push_back(*it2);
+            }
+        }
+
+        condition->rowItr = condition->lines->begin();
+        for (int i = 0; i < cursorY; i++){
+            condition->rowItr++;
+        }
+        condition->colItr = condition->rowItr->begin();
+        for (int i = 0; i < cursorX; i++){
+            condition->colItr++;
+        }
+        condition->cursorX = cursorX;
+        condition->cursorY = cursorY;
+
+        undo->push_back(condition);
+
+        if (undo->size() > 5){
+            undo->pop_front();
+        }
+    }
+
+    // load previous condition of text
+    void loadCondition(Condition *condition){
+
+        lines = condition->lines;
+        rowItr = lines->begin();
+        cursorX = condition->cursorX;
+        cursorY = condition->cursorY;
+        for (int i = 0; i < cursorY; i++){
+            rowItr++;
+        }
+        colItr = rowItr->begin();
+        for (int i = 0; i <= cursorX; i++){
+            colItr++;
+        }
+    }
+
+    void print(){
+        for (auto it = lines->begin(); it != lines->end(); ++it){
+            for (auto it2 = it->begin(); it2 != it->end(); ++it2){
+                cout << *it2;
+            }
+            cout << endl;
+        }
+    }
+
+    void save(Files *file)
+    {
+        string data = "";
+        for (auto it = lines->begin(); it != lines->end(); ++it){
+            for (auto it2 = it->begin(); it2 != it->end(); ++it2){
+                data += *it2;
+            }
+            data += "\n";
+        }
+        data.pop_back();
+        file->data = data;
+    }
+
+    void moveUp(){
+        if (cursorY != 0){
+            cursorY--;
+            rowItr--;
+            if (cursorX >= rowItr->size()){
+                cursorX = rowItr->size();
+            }
+            colItr = rowItr->begin();
+            for (int i = 0; i < cursorX; i++){
+                colItr++;
+            }
+        }
+    }
+
+    void moveDown(){
+        if (cursorY != lines->size() - 1){
+            cursorY++;
+            rowItr++;
+            if (cursorX >= rowItr->size()){
+                cursorX = rowItr->size();
+            }
+            colItr = rowItr->begin();
+            for (int i = 0; i < cursorX; i++){
+                colItr++;
+            }
+        }
+    }
+
+    void moveLeft(){
+        if (cursorX == 0 && cursorY != 0){
+            rowItr--;
+            cursorY--;
+            cursorX = rowItr->size();
+            colItr = rowItr->begin();
+            for (int i = 0; i < cursorX; i++){
+                colItr++;
+            }
+        }
+        else if (cursorX != 0){
+            cursorX--;
+            colItr--;
+        }
+    }
+
+    void moveRight(){
+        if (rowItr->size() == 0){
+            return;
+        }
+        if (cursorX > rowItr->size() - 1 && cursorY != lines->size() - 1){
+            rowItr++;
+            cursorY++;
+            cursorX = 0;
+            colItr = rowItr->begin();
+        }
+        else if (cursorX <= rowItr->size() - 1){
+            cursorX++;
+            colItr++;
+        }
+    }
+
+    void removeBack(){
+        if (cursorX == 0 && cursorY != 0){
+
+            // copy data of this line
+            list<char> *temp = new list<char>();
+            for (auto it = colItr; it != rowItr->end(); ++it){
+                temp->push_back(*it);
+            }
+
+            // erase this line
+            rowItr = lines->erase(rowItr);
+
+            // move to previous line
+            rowItr--;
+            cursorY--;
+            cursorX = rowItr->size();
+            colItr = rowItr->begin();
+            for (int i = 0; i < cursorX; i++){
+                colItr++;
+            }
+
+            // paste data of next line to current line
+            for (auto it = temp->begin(); it != temp->end(); ++it){
+                rowItr->push_back(*it);
+            }
+        }
+        else if (cursorX != 0){
+            cursorX--;
+            colItr--;
+            colItr = rowItr->erase(colItr);
+        }
+    }
+
+    void removeForward(){
+        if (cursorX == rowItr->size() && cursorY != lines->size() - 1){
+
+            // copy data of next line
+            list<char> *temp = new list<char>();
+            auto tempItr = rowItr;
+            tempItr++;
+            for (auto it = tempItr->begin(); it != tempItr->end(); ++it){
+                temp->push_back(*it);
+            }
+
+            // erase next line
+            // rowItr = lines->erase(tempItr);
+            lines->erase(tempItr);
+
+            // paste data of next line to current line
+            for (auto it = temp->begin(); it != temp->end(); ++it){
+                rowItr->push_back(*it);
+            }
+
+            // reset column iterator
+            colItr = rowItr->begin();
+            for (int i = 0; i < cursorX; i++){
+                colItr++;
+            }
+        }
+        else if (cursorX != rowItr->size()){
+            colItr = rowItr->erase(colItr);
+        }
+    }
+
+    void addNewLine(){
+
+        // first copy the rest of the list
+        list<char> *temp = new list<char>();
+        for (auto it = colItr; it != rowItr->end(); ++it){
+            temp->push_back(*it);
+        }
+
+        // erase it in the current line and paste in the next line
+        rowItr->erase(colItr, rowItr->end());
+        rowItr = lines->insert(++rowItr, *temp);
+        colItr = rowItr->begin();
+
+        cursorY++;
+        cursorX = 0;
+    }
+
+    void addChar(char c){
+        rowItr->insert(colItr, c);
+        cursorX++;
+    }
+
+    void undoCommand(){
+        if (!undo->empty()){
+            Condition *currentCondition = undo->back();
+            undo->pop_back();
+            redo->push(currentCondition);
+            loadCondition(currentCondition);
+            system("cls");
+            print();
+        }
+    }
+
+    void redoCommand(bool doIt){
+        if (!redo->empty() && doIt){
+            Condition *currentCondition = redo->top();
+            redo->pop();
+            loadCondition(currentCondition);
+            system("cls");
+            print();
+        }
+    }
+
+    // clears redo stack when some key is pressed interrupting undo queue
+    bool clearRedoStack(bool doIt){
+        if (doIt){
+            while (!redo->empty()){
+                redo->pop();
+            }
+        }
+        return false;
+    }
+
+    void run(Files *file){
+        loadFile(file);
+
+        system("color F0");
+        system("cls");
+
+        print();
+
+        bool modify = false;
+        bool doIt = false;
+
+        if (rowItr->empty()){
+            rowItr->push_back(' ');
+            colItr = rowItr->begin();
+        }
+
+        while (true){
+
+            // cout << rowItr->size() << endl;
+            // cout << cursorX << endl;
+            // cout << *colItr << endl;
+
+            gotoxy(cursorX, cursorY);
+            char c = getch();
+
+            bool capsLockState = GetKeyState(VK_CAPITAL);
+
+            if (c == 0 || GetAsyncKeyState(VK_SHIFT) || c == 9 || capsLockState)
+                continue;
+            else if (c == 72)
+            {
+                moveUp();
+            }
+            else if (c == 80)
+            {
+                moveDown();
+            }
+            else if (c == 75)
+            {
+                moveLeft();
+            }
+            else if (c == 77)
+            {
+                moveRight();
+            }
+            else if (c == 13)
+            { // enter key pressed
+                saveCondition();
+                addNewLine();
+                modify = true;
+            }
+            else if (c == 27)
+            { // escape key pressed
+                break;
+            }
+            else if (c == 8)
+            { // backspace pressed
+                saveCondition();
+                removeBack();
+                modify = true;
+            }
+            else if (c == 83)
+            { // delete pressed
+                saveCondition();
+                removeForward();
+                modify = true;
+            }
+            else if (c == 26)
+            { // CTRL + Z
+                undoCommand();
+                doIt = true;
+            }
+            else if (c == 25)
+            { // CTRL + Y
+                redoCommand(doIt);
+            }
+            else
+            { // insert character
+                saveCondition();
+                addChar(c);
+                modify = true;
+            }
+
+            if (modify)
+            {
+                system("cls");
+                print();
+                modify = false;
+                doIt = clearRedoStack(doIt);
+            }
+        }
+
+        save(file);
+        system("color 07");
+        system("cls");
+    }
+};
+
 // tree class
 class Tree
 {
@@ -306,8 +760,7 @@ public:
             string fileData = getInput();
             current->addFile(_name, fileData);
         }
-        else
-        {
+        else{
             cout << "File or name already exists" << endl;
         }
     }
@@ -806,6 +1259,19 @@ public:
         }
     }
 
+    void openEditor(string filename)
+    {
+        Files *file = current->findFile(filename);
+        if (file == nullptr)
+        {
+            cout << "File not found" << endl;
+            return;
+        }
+
+        TextEditor editor;
+        editor.run(file);
+    }
+
     // input function
     bool input()
     {
@@ -890,16 +1356,13 @@ public:
         {
             attrib(input.substr(7, input.length() - 1));
         }
-        else if (input.substr(0, 5) == "mkdir")
-        {
+        else if (input.substr(0, 6) == "mkdir "){
             mkdir(input.substr(6, input.length() - 1));
         }
-        else if (input.substr(0, 6) == "mkfile")
-        {
+        else if (input.substr(0, 7) == "mkfile "){
             mkfile(input.substr(7, input.length() - 1));
         }
-        else if (input.substr(0, 5) == "rmdir")
-        {
+        else if (input.substr(0, 6) == "rmdir "){
             rmdir(input.substr(6, input.length() - 1));
         }
         else if (input.substr(0, 6) == "print ")
@@ -921,6 +1384,12 @@ public:
         else if (input == "pwd")
         {
             current->printPath();
+        }
+        else if (input.substr(0, 5) == "edit ")
+        {
+            openEditor(input.substr(5, input.length() - 1));
+            system("cls");
+            header();
         }
         else if (input.substr(0, 6) == "rename")
         {
@@ -1003,6 +1472,7 @@ public:
         cout << "pprint <file name> add file to priority queue" << endl;
         cout << "queue print files in queue" << endl;
         cout << "pqueue print files in priority queue" << endl;
+        cout << "edit <fileName> opens editor to edit file" << endl;
     }
 
     void header()
@@ -1011,13 +1481,6 @@ public:
         cout << "2022-CS-115 && 2022-CS-123" << endl;
         cout << "==========================" << endl;
     }
-};
-
-// text editor
-class TextEditor
-{
-public:
-    // TO-DO
 };
 
 int main()
