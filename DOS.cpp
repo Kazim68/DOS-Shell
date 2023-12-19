@@ -191,7 +191,7 @@ public:
         cursorX = cursorY = 0;
     }
 
-    printData(){
+    void printData(){
         for (auto it = lines->begin(); it != lines->end(); ++it){
             for (auto it2 = it->begin(); it2 != it->end(); ++it2){
                 cout << *it2;
@@ -477,6 +477,16 @@ public:
         }
     }
 
+    void redoCommand(bool doIt){
+        if (!redo->empty() && doIt){
+            Condition* currentCondition = redo->top();
+            redo->pop();
+            loadCondition(currentCondition);
+            system("cls");
+            print();
+        }
+    }
+
     void run(Files *file){
         loadFile(file);
 
@@ -486,6 +496,7 @@ public:
         print();
 
         bool modify = false;
+        bool doIt = false;
 
         if (rowItr->empty()){
             rowItr->push_back(' ');
@@ -501,7 +512,9 @@ public:
             gotoxy(cursorX, cursorY);
             char c = getch();
 
-            if (c == 0)
+            bool capsLockState = GetKeyState(VK_CAPITAL);
+
+            if (c == 0 || GetAsyncKeyState(VK_SHIFT) || c == 9 || capsLockState)
                 continue;
             else if (c == 72){
                 moveUp();
@@ -535,6 +548,10 @@ public:
             }
             else if (c == 26){  // CTRL + Z
                 undoCommand();
+                doIt = true;
+            }
+            else if (c == 25){  // CTRL + Y
+                redoCommand(doIt);
             }
             else {      // insert character
                 saveCondition();
@@ -547,6 +564,7 @@ public:
                 system("cls");
                 print();
                 modify = false;
+                doIt = false;
             }
         }
 
