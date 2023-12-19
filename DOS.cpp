@@ -738,15 +738,24 @@ public:
     }
 
     // mkfile function
-    void mkfile(string _name){
+    void mkfile(string _name)
+    {
 
-        if (_name.empty()){
+        if (_name.empty())
+        {
             cout << "Invalid syntax" << endl;
             return;
         }
-
+        string text = _name.substr(_name.find(".") + 1, _name.length() - 1);
+        if (text != "txt")
+        {
+            _name = _name.substr(0, _name.find(".")) + ".txt";
+        }
         // checking for duplicate file names
-        if (!current->checkFile(_name) && !current->checkDirectory(_name)){
+        if (!current->checkFile(_name) && !current->checkDirectory(_name))
+        {
+            // add txt extension in the file name if it is not provieded
+
             cout << "Enter file data: ";
             string fileData = getInput();
             current->addFile(_name, fileData);
@@ -773,13 +782,27 @@ public:
             }
         }
     }
+
+    string getNameWithExt(string name){
+        if (name.find(".") != string::npos){
+            if (name.substr(name.find("."), name.size() - 1) != "txt"){
+                name = name.substr(0, name.find(".")) + ".txt";
+            }
+        }
+        else{
+            name += ".txt";
+        }
+        return name;
+    }
     // rename function
     void rename(string oldname)
     {
         string currentnName = oldname.substr(0, oldname.find(" "));
-        cout << "current name is " << currentnName << endl;
-        string newName = oldname.substr(oldname.find(" ") + 1, oldname.length() - 1);
-        cout << "new name is " << newName << endl;
+        currentnName = getNameWithExt(currentnName);
+        cout<<currentnName<<endl;
+        string newName = oldname.substr(oldname.find(" ")+1, oldname.length() - 1);
+        newName = getNameWithExt(newName);
+        cout << newName << endl;
         if (current->checkFile(currentnName))
         {
             for (auto it = current->files->begin(); it != current->files->end(); ++it)
@@ -787,7 +810,6 @@ public:
                 if (it->name == currentnName)
                 {
                     it->name = newName;
-                    cout << it->name << endl;
                     return;
                 }
             }
@@ -801,7 +823,6 @@ public:
                     // do update the path of the directory as well
                     it->path = it->parent->path + newName + "\\";
                     it->name = newName;
-                    cout << it->name << endl;
                     return;
                 }
             }
@@ -1319,16 +1340,20 @@ public:
         {
             findStr(input.substr(8, input.length() - 1));
         }
-        else if (input.substr(0, 6) == "findf "){
+        else if (input.substr(0, 6) == "findf ")
+        {
             findf(input.substr(6, input.length() - 1));
         }
-        else if (input.substr(0, 5) == "copy "){
+        else if (input.substr(0, 5) == "copy ")
+        {
             copy(input.substr(5, input.length() - 1));
         }
-        else if (input.substr(0, 5) == "move "){
+        else if (input.substr(0, 5) == "move ")
+        {
             move(input.substr(5, input.length() - 1));
         }
-        else if (input.substr(0, 7) == "attrib "){
+        else if (input.substr(0, 7) == "attrib ")
+        {
             attrib(input.substr(7, input.length() - 1));
         }
         else if (input.substr(0, 6) == "mkdir "){
@@ -1340,13 +1365,16 @@ public:
         else if (input.substr(0, 6) == "rmdir "){
             rmdir(input.substr(6, input.length() - 1));
         }
-        else if (input.substr(0, 6) == "print "){
+        else if (input.substr(0, 6) == "print ")
+        {
             print(input.substr(6, input.length() - 1));
         }
-        else if (input.substr(0, 7) == "pprint "){
+        else if (input.substr(0, 7) == "pprint ")
+        {
             pprint(input.substr(7, input.length() - 1));
         }
-        else if (input.substr(0, 5) == "queue"){
+        else if (input.substr(0, 5) == "queue")
+        {
             Queue();
         }
         else if (input.substr(0, 6) == "pqueue")
