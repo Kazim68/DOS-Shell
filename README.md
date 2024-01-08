@@ -8,7 +8,11 @@ This project is a DOS Shell with an integrated text editor, implemented using th
 
 - **DOS Shell Interface**: The project provides a command-line interface resembling the DOS shell, allowing users to navigate through directories, execute commands, and perform various file operations.
 
+![image](https://github.com/Kazim68/DOS-Shell/assets/120156815/aaee602e-5c01-401b-8202-93782a9777c3)
+
 - **Text Editor Functionality**: The integrated text editor supports creating, editing, and saving text files. Users can manipulate text files using a range of commands, providing a versatile and efficient editing environment.
+
+  ![image](https://github.com/Kazim68/DOS-Shell/assets/120156815/ad53b87a-310e-4636-8716-1206f532c075)
 
 - **Tree Data Structure**: The underlying file system is organized using a tree data structure, enabling efficient file navigation and management.
 
@@ -17,8 +21,8 @@ This project is a DOS Shell with an integrated text editor, implemented using th
 ## How to Use
 
 1. **Clone the Repository:**
-
-```- git clone https://github.com/Kazim68/DOS-Shell.git```
+    ```bash
+    - git clone https://github.com/Kazim68/DOS-Shell.git
 
 2. **Compile and Run:**
 - Navigate to the project directory and compile the source code.
